@@ -3,14 +3,9 @@ require "logstash/inputs/base"
 require "logstash/namespace"
 require "socket" # for Socket.gethostname
 
-# Run command line tools and capture the whole output as an event.
+# Pull time entries from detailed report Toggl API.
 #
-# Notes:
-#
-# * The `@source` of this event will be the command run.
-# * The `@message` of this event will be the entire stdout of the command
-#   as one event.
-#
+# Detailed report URL: GET https://toggl.com/reports/api/v2/details
 class LogStash::Inputs::Toggl < LogStash::Inputs::Base
 
   config_name "toggl"
@@ -24,15 +19,24 @@ class LogStash::Inputs::Toggl < LogStash::Inputs::Base
   config :api_token, :validate => :string, :required => true
 
   # Workspace ID
+  #
+  # The workspace which data you want to access.
   config :workspace_id, :validate => :string, :required => true
 
-  # Workspace ID
+  # User Agent
+  #
+  # The name of your application or your email address so we can get in touch in case you're doing something wrong.
+  config :user_agent, :validate => :string, :required => true
+
+  # Since
+  #
+  # ISO 8601 date (YYYY-MM-DD), by default until - 6 days.
   config :since, :validate => :string, :required => false
 
   public
   def register
     require "faraday"
-    require 'json'
+    require "json"
 
     if since
       addon = "since=#{ @since }"
@@ -40,7 +44,7 @@ class LogStash::Inputs::Toggl < LogStash::Inputs::Base
       addon = ""
     end
 
-    @url = "https://toggl.com/reports/api/v2/details?workspace_id=#{ @workspace_id }&user_agent=logstash&#{ addon }"
+    @url = "https://toggl.com/reports/api/v2/details?workspace_id=#{ @workspace_id }&user_agent=#{ @user_agent }&#{ addon }"
     @logger.info? && @logger.info("Registering Toggl Input", :url => @url, :interval => @interval)
   end # def register
 
