@@ -52,7 +52,7 @@ class LogStash::Inputs::Toggl < LogStash::Inputs::Base
         builder.use Faraday::Request::Retry
         builder.use Faraday::Request::BasicAuthentication, @api_token, 'api_token'
         builder.use Faraday::Response::Logger
-        builder.use Faraday::Adapter::NetHttp
+        builder.adapter Faraday.default_adapter
     end
   end # def register
 
