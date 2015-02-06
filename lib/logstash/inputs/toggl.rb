@@ -1,7 +1,6 @@
 # encoding: utf-8
 require "logstash/inputs/base"
 require "logstash/namespace"
-require "socket" # for Socket.gethostname
 
 # Pull time entries from detailed report Toggl API.
 #
@@ -46,6 +45,13 @@ class LogStash::Inputs::Toggl < LogStash::Inputs::Base
 
     @url = "https://toggl.com/reports/api/v2/details?workspace_id=#{ @workspace_id }&user_agent=#{ @user_agent }&#{ addon }"
     @logger.info? && @logger.info("Registering Toggl Input", :url => @url, :interval => @interval)
+
+    @connection = Faraday.new do |builder|
+        builder.use Faraday::Request::Retry
+        builder.use Faraday::Request::BasicAuthentication, @api_token, 'api_token'
+        builder.use Faraday::Response::Logger
+        builder.use Faraday::Adapter::NetHttp
+    end
   end # def register
 
   public
@@ -54,19 +60,12 @@ class LogStash::Inputs::Toggl < LogStash::Inputs::Base
       start = Time.now
       @logger.info? && @logger.info("Polling Toggl", :url => @url, :time => start)
 
-      conn = Faraday.new do |builder|
-        builder.use Faraday::Request::Retry
-        builder.use Faraday::Request::BasicAuthentication, @api_token, 'api_token'
-        builder.use Faraday::Response::Logger
-        builder.use Faraday::Adapter::NetHttp
-      end
-
       page = 1
 
       while true
         new_url = @url + "&page=#{ page }"
 
-        response = conn.get new_url
+        response = @connection.get new_url
         result = JSON.parse(response.body)
 
         if result["data"].nil? || result["data"].empty?
