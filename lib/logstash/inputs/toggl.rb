@@ -46,7 +46,9 @@ class LogStash::Inputs::Toggl < LogStash::Inputs::Base
     @url = "https://toggl.com/reports/api/v2/details?workspace_id=#{ @workspace_id }&user_agent=#{ @user_agent }&#{ addon }"
     @logger.info? && @logger.info("Registering Toggl Input", :url => @url, :interval => @interval)
 
-    @connection = Faraday.new do |builder|
+    @connection = Faraday.new(:ssl => {
+        :ca_path => "/usr/lib/ssl/certs"
+      }) do |builder|
         builder.use Faraday::Request::Retry
         builder.use Faraday::Request::BasicAuthentication, @api_token, 'api_token'
         builder.use Faraday::Response::Logger
